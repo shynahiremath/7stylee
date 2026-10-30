@@ -1,8 +1,10 @@
+
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
+
 import authRoutes from "./routes/authRoutes";
 import productRoutes from "./routes/productRoutes";
 import cartRoutes from "./routes/cartRoutes";
@@ -15,33 +17,53 @@ import addressRoutes from "./routes/addressRoutes";
 
 dotenv.config();
 
-connectDB();
-
 const app = express();
+app.set("trust proxy", 1);
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+// Middleware
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
+
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "7Style server is running",
+  });
+});
+
+// API Routes
 app.use("/api/upload", uploadRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/body-profile", bodyProfileRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/addresses", addressRoutes);
-
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "7Style server is running" });
-});
-
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 
+// Production server startup
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
 
-app.use("/api/products", productRoutes);
+    app.listen(PORT, () => {
+      console.log(`7Style server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Server startup failed:", error);
+    process.exit(1);
+  }
+};
 
-app.use("/api/cart", cartRoutes);
-
-app.use("/api/orders", orderRoutes);
+startServer();

@@ -5,9 +5,12 @@ import { User } from "../models/User";
 import { generateAccessToken, generateRefreshToken } from "../utils/generateToken";
 import { AuthRequest } from "../middleware/authMiddleware";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const refreshCookie = {
   httpOnly: true,
-  sameSite: "lax" as const,
+  secure: isProduction,
+  sameSite: (isProduction ? "none" : "lax") as "none" | "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
@@ -132,6 +135,10 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 };
 
 export const logoutUser = async (_req: Request, res: Response) => {
-  res.clearCookie("refreshToken", { httpOnly: true, sameSite: "lax" });
+  res.clearCookie("refreshToken", {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+});
   res.status(200).json({ message: "Logged out" });
 };
